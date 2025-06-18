@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors'; // <-- IMPORT CORS
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 
@@ -7,22 +8,22 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// --- MIDDLEWARE ---
+app.use(cors()); // <-- USE CORS to allow requests from other websites
 app.use(express.json());
 
-// --- The data fetching function is now REMOVED. ---
-// The client will provide the data.
+// --- The rest of your code is unchanged ---
 
-// --- Initialize Gemini AI ---
+// Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash-latest",
   generationConfig: { response_mime_type: "application/json" }
 });
 
-// --- NEW SIMPLER Crypto Analysis Endpoint ---
+// Crypto Analysis Endpoint
 app.post('/analyze-crypto', async (req, res) => {
   try {
-    // We now expect the client to send the coin name AND the live data
     const { coin_name, live_data } = req.body; 
     
     if (!coin_name || !live_data) {
@@ -34,7 +35,6 @@ app.post('/analyze-crypto', async (req, res) => {
 
     console.log(`Received data for analysis: ${coin_name}`);
     
-    // Create the detailed prompt for Gemini using the data we received
     const prompt = `
       You are an expert crypto market analyst. 
       Given the following live market data for ${coin_name}, provide a detailed analysis.
@@ -54,12 +54,9 @@ app.post('/analyze-crypto', async (req, res) => {
       VERY IMPORTANT: Do not include any introductory or concluding sentences. Respond only with the structured analysis.
     `;
 
-    // Call Gemini API
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    
     const analysisResult = JSON.parse(response.text());
-
     res.json(analysisResult);
 
   } catch (error) {
