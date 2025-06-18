@@ -6,30 +6,30 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// POST endpoint
+const API_KEY = process.env.AISTUDIO_API_KEY;
+
 app.post("/ask", async (req, res) => {
   const { message } = req.body;
 
   try {
     const response = await axios.post(
-      "https://api.together.xyz/v1/chat/completions",
+      "https://api.aistudio.cloud/v1/chat/completions",
       {
-        model: "deepseek-ai/DeepSeek-Coder",
+        model: "gpt-3.5-turbo",  // or any available model
         messages: [{ role: "user", content: message }],
       },
       {
         headers: {
-          "Authorization": `Bearer ${process.env.TOGETHER_API_KEY}`,
           "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
         },
       }
     );
 
-    const reply = response.data.choices[0].message.content;
-    res.json({ reply });
+    res.json({ reply: response.data.choices[0].message.content });
   } catch (error) {
-    console.error("Together API error:", error?.response?.data || error.message);
-    res.status(500).json({ error: "Something went wrong with Together API" });
+    console.error("AIStudio error:", error.response?.data || error.message);
+    res.status(500).json({ error: "Something went wrong" });
   }
 });
 
