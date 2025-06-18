@@ -1,7 +1,6 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
-// We don't need axios for this new version
 
 dotenv.config();
 
@@ -49,18 +48,6 @@ async function getCryptoData(coinId) {
   }
 }
 
-    // Reformat the data to match what our prompt expects
-    return {
-      usd: parseFloat(data.data.priceUsd).toFixed(2),
-      usd_24h_vol: parseFloat(data.data.volumeUsd24Hr).toFixed(2),
-      usd_24h_change: parseFloat(data.data.changePercent24Hr).toFixed(2)
-    };
-  } catch (error) {
-    console.error("Error in getCryptoData function:", error.message);
-    throw new Error("Could not fetch live crypto data from CoinCap.");
-  }
-}
-
 // --- Initialize Gemini AI ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({
@@ -68,20 +55,18 @@ const model = genAI.getGenerativeModel({
   generationConfig: { response_mime_type: "application/json" }
 });
 
-// --- Crypto Analysis Endpoint (The logic inside this stays the same) ---
+// --- Crypto Analysis Endpoint ---
 app.post('/analyze-crypto', async (req, res) => {
   try {
-    const { coin_id } = req.body; // e.g., "bitcoin", "ethereum"
+    const { coin_id } = req.body;
     if (!coin_id) {
       return res.status(400).json({ error: 'coin_id is required' });
     }
 
     console.log(`Analyzing coin with CoinCap: ${coin_id}`);
     
-    // 1. Get live data
     const liveData = await getCryptoData(coin_id);
 
-    // 2. Create the detailed prompt for Gemini
     const prompt = `
       You are an expert crypto market analyst. 
       Given the following live market data for ${coin_id}, provide a detailed analysis.
@@ -101,7 +86,6 @@ app.post('/analyze-crypto', async (req, res) => {
       VERY IMPORTANT: Do not include any introductory or concluding sentences. Respond only with the structured analysis.
     `;
 
-    // 3. Call Gemini API
     const result = await model.generateContent(prompt);
     const response = await result.response;
     
