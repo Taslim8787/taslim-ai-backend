@@ -14,7 +14,7 @@ app.use(express.json());
 // --- Helper function to get live crypto data ---
 async function getCryptoData(coinId) {
   try {
-    const priceUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true`;
+    const priceUrl = `https://pro-api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true`;
     const response = await axios.get(priceUrl, {
       headers: { 'x-cg-pro-api-key': process.env.COINGECKO_API_KEY }
     });
