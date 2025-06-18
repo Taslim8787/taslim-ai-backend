@@ -10,19 +10,26 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// --- NEW Helper function to get live crypto data from COINCAP ---
-// This API does NOT require an API key.
+// --- NEWER, more robust Helper function for COINCAP ---
 async function getCryptoData(coinId) {
   try {
-    // CoinCap API URL to get asset data
-    const url = `https://api.coincap.io/v2/assets/${coinId}`;
+    const url = `https://api.coincap.io/v2/assets/${coinId.toLowerCase()}`;
+    console.log(`Attempting to fetch from CoinCap URL: ${url}`);
+    
     const response = await fetch(url);
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch data from CoinCap. Status: ${response.status}`);
+      // Log the full response to see more details if it fails
+      const errorBody = await response.text();
+      console.error(`CoinCap API Error: Status ${response.status}, Body: ${errorBody}`);
+      throw new Error(`Failed to fetch data from CoinCap. Status: ${response.status}`);
     }
 
     const data = await response.json();
+
+    if (!data || !data.data) {
+      throw new Error(`Invalid data structure received from CoinCap for coinId: ${coinId}`);
+    }
 
     // Reformat the data to match what our prompt expects
     return {
@@ -31,7 +38,7 @@ async function getCryptoData(coinId) {
       usd_24h_change: parseFloat(data.data.changePercent24Hr).toFixed(2)
     };
   } catch (error) {
-    console.error("Error fetching crypto data from CoinCap:", error.message);
+    console.error("Error in getCryptoData function:", error.message);
     throw new Error("Could not fetch live crypto data from CoinCap.");
   }
 }
