@@ -9,44 +9,8 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// --- FINAL ATTEMPT Helper function for COINCAP with User-Agent ---
-async function getCryptoData(coinId) {
-  try {
-    const url = `https://api.coincap.io/v2/assets/${coinId.toLowerCase()}`;
-    console.log(`Final Attempt: Fetching from CoinCap URL: ${url}`);
-    
-    // Add a standard User-Agent header to the request
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`CoinCap API Error: Status ${response.status}, Body: ${errorBody}`);
-      throw new Error(`Failed to fetch data from CoinCap. Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data || !data.data) {
-      throw new Error(`Invalid data structure received from CoinCap for coinId: ${coinId}`);
-    }
-
-    // Reformat the data
-    return {
-      usd: parseFloat(data.data.priceUsd).toFixed(2),
-      usd_24h_vol: parseFloat(data.data.volumeUsd24Hr).toFixed(2),
-      usd_24h_change: parseFloat(data.data.changePercent24Hr).toFixed(2)
-    };
-  } catch (error) {
-    console.error("Error in getCryptoData function:", error.message);
-    throw new Error("Could not fetch live crypto data from CoinCap.");
-  }
-}
+// --- The data fetching function is now REMOVED. ---
+// The client will provide the data.
 
 // --- Initialize Gemini AI ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -55,26 +19,30 @@ const model = genAI.getGenerativeModel({
   generationConfig: { response_mime_type: "application/json" }
 });
 
-// --- Crypto Analysis Endpoint ---
+// --- NEW SIMPLER Crypto Analysis Endpoint ---
 app.post('/analyze-crypto', async (req, res) => {
   try {
-    const { coin_id } = req.body;
-    if (!coin_id) {
-      return res.status(400).json({ error: 'coin_id is required' });
+    // We now expect the client to send the coin name AND the live data
+    const { coin_name, live_data } = req.body; 
+    
+    if (!coin_name || !live_data) {
+      return res.status(400).json({ error: 'coin_name and live_data are required' });
+    }
+    if (!live_data.usd || !live_data.usd_24h_vol || !live_data.usd_24h_change) {
+        return res.status(400).json({ error: 'live_data must include usd, usd_24h_vol, and usd_24h_change' });
     }
 
-    console.log(`Analyzing coin with CoinCap: ${coin_id}`);
+    console.log(`Received data for analysis: ${coin_name}`);
     
-    const liveData = await getCryptoData(coin_id);
-
+    // Create the detailed prompt for Gemini using the data we received
     const prompt = `
       You are an expert crypto market analyst. 
-      Given the following live market data for ${coin_id}, provide a detailed analysis.
+      Given the following live market data for ${coin_name}, provide a detailed analysis.
       
       Current Data:
-      - Current Price (USD): ${liveData.usd}
-      - 24h Trading Volume (USD): ${liveData.usd_24h_vol}
-      - 24h Price Change (%): ${liveData.usd_24h_change}%
+      - Current Price (USD): ${live_data.usd}
+      - 24h Trading Volume (USD): ${live_data.usd_24h_vol}
+      - 24h Price Change (%): ${live_data.usd_24h_change}%
 
       Your task is to provide a trading recommendation. Follow this structure exactly:
       1.  **Analysis Breakdown**: A short paragraph explaining the current market sentiment based on the data.
@@ -86,6 +54,7 @@ app.post('/analyze-crypto', async (req, res) => {
       VERY IMPORTANT: Do not include any introductory or concluding sentences. Respond only with the structured analysis.
     `;
 
+    // Call Gemini API
     const result = await model.generateContent(prompt);
     const response = await result.response;
     
