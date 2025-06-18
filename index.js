@@ -10,16 +10,22 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// --- NEWER, more robust Helper function for COINCAP ---
+// --- FINAL ATTEMPT Helper function for COINCAP with User-Agent ---
 async function getCryptoData(coinId) {
   try {
     const url = `https://api.coincap.io/v2/assets/${coinId.toLowerCase()}`;
-    console.log(`Attempting to fetch from CoinCap URL: ${url}`);
+    console.log(`Final Attempt: Fetching from CoinCap URL: ${url}`);
     
-    const response = await fetch(url);
+    // Add a standard User-Agent header to the request
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
 
     if (!response.ok) {
-      // Log the full response to see more details if it fails
       const errorBody = await response.text();
       console.error(`CoinCap API Error: Status ${response.status}, Body: ${errorBody}`);
       throw new Error(`Failed to fetch data from CoinCap. Status: ${response.status}`);
@@ -30,6 +36,18 @@ async function getCryptoData(coinId) {
     if (!data || !data.data) {
       throw new Error(`Invalid data structure received from CoinCap for coinId: ${coinId}`);
     }
+
+    // Reformat the data
+    return {
+      usd: parseFloat(data.data.priceUsd).toFixed(2),
+      usd_24h_vol: parseFloat(data.data.volumeUsd24Hr).toFixed(2),
+      usd_24h_change: parseFloat(data.data.changePercent24Hr).toFixed(2)
+    };
+  } catch (error) {
+    console.error("Error in getCryptoData function:", error.message);
+    throw new Error("Could not fetch live crypto data from CoinCap.");
+  }
+}
 
     // Reformat the data to match what our prompt expects
     return {
