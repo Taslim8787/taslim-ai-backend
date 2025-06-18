@@ -13,9 +13,9 @@ app.post("/ask", async (req, res) => {
 
   try {
     const response = await axios.post(
-      "https://api.aistudio.cloud/v1/chat/completions",
+      "https://api.aistudio.cloud/v1/chat/completions", // ✅ Correct URL
       {
-        model: "gpt-3.5-turbo",  // or any available model
+        model: "gpt-3.5-turbo", // or any other supported model
         messages: [{ role: "user", content: message }],
       },
       {
@@ -29,7 +29,7 @@ app.post("/ask", async (req, res) => {
     res.json({ reply: response.data.choices[0].message.content });
   } catch (error) {
     console.error("AIStudio error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Something went wrong" });
+    res.status(500).json({ error: "Something went wrong with AIStudio" });
   }
 });
 
