@@ -16,7 +16,7 @@ async function getCryptoData(coinId) {
   try {
     const priceUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true`;
     const response = await axios.get(priceUrl, {
-      headers: { 'x-cg-demo-api-key': process.env.COINGECKO_API_KEY }
+      headers: { 'x-cg-pro-api-key': process.env.COINGECKO_API_KEY }
     });
     return response.data[coinId];
   } catch (error) {
